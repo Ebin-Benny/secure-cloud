@@ -5,6 +5,7 @@
   "dependencies": {
     "@material-ui/core": "^3.9.2",
     "@material-ui/icons": "^3.0.2",
+    "dropbox": "^4.0.17",
     "es6-promise": "^4.2.6",
     "filepond": "^4.3.3",
     "isomorphic-fetch": "^2.2.1",
