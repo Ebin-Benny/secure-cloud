@@ -25,7 +25,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(logger('dev'));
 
-router.get('/getUserRepos', cors(), (req, res) => {
+router.get('/addGroup', cors(), (req, res) => {
   const userName = req.query.username;
   if (!userName) {
     return res.json({
@@ -49,7 +49,55 @@ router.get('/getUserRepos', cors(), (req, res) => {
   );
 });
 
-router.get('/getRepoContributions', cors(), (req, res) => {
+router.get('/addUser', cors(), (req, res) => {
+  const userName = req.query.username;
+  if (!userName) {
+    return res.json({
+      error: 'INVALID INPUTS\n',
+      success: false,
+    });
+  }
+  getUserRepos(
+    userName,
+    data => {
+      return res.json({
+        data,
+        success: true,
+      });
+    },
+    () => {
+      return res.json({
+        success: false,
+      });
+    },
+  );
+});
+
+router.get('/getKey', cors(), (req, res) => {
+  const userName = req.query.username;
+  if (!userName) {
+    return res.json({
+      error: 'INVALID INPUTS\n',
+      success: false,
+    });
+  }
+  getUserRepos(
+    userName,
+    data => {
+      return res.json({
+        data,
+        success: true,
+      });
+    },
+    () => {
+      return res.json({
+        success: false,
+      });
+    },
+  );
+});
+
+router.get('/removeUser', cors(), (req, res) => {
   const fullRepo = req.query.repo;
   const split = fullRepo.split('/');
   const owner = split[0];
