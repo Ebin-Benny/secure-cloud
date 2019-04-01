@@ -16,6 +16,7 @@ const styles = theme => ({
     },
     paper: {
         margin: 20,
+        width: 100,
         padding: theme.spacing.unit * 2,
         textAlign: 'center',
         color: theme.palette.text.secondary,
@@ -28,6 +29,20 @@ function Files(props) {
     var fileName = 'newFile'
     return (
         <div>
+            <Grid container spacing={24}>
+                <Grid item xs={3}>
+                    <Paper className={classes.paper}>Filename</Paper>
+                </Grid>
+                <Grid item xs={3}>
+                    <Paper className={classes.paper}>Filename</Paper>
+                </Grid>
+                <Grid item xs={3}>
+                    <Paper className={classes.paper}>Filename</Paper>
+                </Grid>
+                <Grid item xs={3}>
+                    <Paper className={classes.paper}>Filename</Paper>
+                </Grid>
+            </Grid>
             <FilePond
                 allowMultiple={true}
                 onupdatefiles={(files) => {
@@ -47,20 +62,6 @@ function Files(props) {
                         reader.readAsBinaryString(files[0].file)
                     }
                 }} />
-            <Grid container spacing={24}>
-                <Grid item xs={6}>
-                    <Paper className={classes.paper}>Filename</Paper>
-                </Grid>
-                <Grid item xs={6}>
-                    <Paper className={classes.paper}>Filename</Paper>
-                </Grid>
-                <Grid item xs={6}>
-                    <Paper className={classes.paper}>Filename</Paper>
-                </Grid>
-                <Grid item xs={6}>
-                    <Paper className={classes.paper}>Filename</Paper>
-                </Grid>
-            </Grid>
         </div>
     );
 }

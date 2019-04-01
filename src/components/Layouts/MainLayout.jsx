@@ -17,7 +17,17 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import GroupRoundedIcon from '@material-ui/icons/GroupRounded';
+import PeopleIcon from '@material-ui/icons/People';
 import Files from '../Files.js';
+import Cookies from 'universal-cookie';
+import Button from '@material-ui/core/Button';
+const queryString = require('query-string');
+var Dropbox = require('dropbox').Dropbox;
+
+const CLIENT_ID = 'd8fbp50ftq67ldb';
+var dbx = new Dropbox({ clientId: CLIENT_ID });
+var authUrl = dbx.getAuthenticationUrl('http://localhost:3000/');
+const cookies = new Cookies();
 
 const drawerWidth = 240;
 
@@ -76,12 +86,68 @@ const styles = theme => ({
         }),
         marginLeft: 0,
     },
+    button: {
+        margin: theme.spacing.unit,
+    },
+    leftIcon: {
+        marginRight: theme.spacing.unit,
+    },
+    rightIcon: {
+        marginLeft: theme.spacing.unit,
+    },
+    iconSmall: {
+        fontSize: 20,
+    },
 });
 
-class MainLayout extends React.Component {
-    state = {
-        open: false,
-    };
+class MainLayout extends React.PureComponent {
+
+    constructor(props) {
+        super(props);
+        const parsed = queryString.parse(window.location.hash);
+        let access_token = parsed.access_token;
+        let uid = parsed.uid;
+        let account_id = parsed.account_id
+        if (access_token === undefined) {
+            access_token = cookies.get('access_token');
+        } else {
+            cookies.set('access_token', access_token, { path: "/" });
+        }
+        if (uid === undefined) {
+            uid = cookies.get('uid');
+        } else {
+            cookies.set('uid', uid, { path: "/" });
+        }
+        if (account_id === undefined) {
+            account_id = cookies.get('account_id');
+        } else {
+            cookies.set('account_id', account_id, { path: "/" });
+        }
+
+        this.state = {
+            open: false,
+            access_token,
+            uid,
+            account_id,
+            name: undefined
+        }
+    }
+
+    componentDidMount() {
+        const { access_token } = this.state;
+        if (access_token !== undefined) {
+            var dbu = new Dropbox({ accessToken: access_token });
+            var comp = this;
+            dbu.usersGetCurrentAccount()
+                .then((response) => {
+                    comp.handleGetName(response.name.display_name)
+                });
+        }
+    }
+
+    handleGetName = (name) => {
+        this.setState({ name: name });
+    }
 
     handleDrawerOpen = () => {
         this.setState({ open: true });
@@ -91,9 +157,13 @@ class MainLayout extends React.Component {
         this.setState({ open: false });
     };
 
+    handleLogIn = () => {
+        window.open(authUrl, '_blank')
+    }
+
     render() {
         const { classes, theme } = this.props;
-        const { open } = this.state;
+        const { open, access_token, account_id, uid, name } = this.state;
 
         return (
             <div className={classes.root}>
@@ -115,7 +185,7 @@ class MainLayout extends React.Component {
                         </IconButton>
                         <Typography variant="h6" color="inherit" noWrap>
                             Group 1
-            </Typography>
+                        </Typography>
                     </Toolbar>
                 </AppBar>
                 <Drawer
@@ -128,6 +198,14 @@ class MainLayout extends React.Component {
                     }}
                 >
                     <div className={classes.drawerHeader}>
+                        {name !== undefined ?
+                            <Typography variant="h6" color="inherit" noWrap>{name}</Typography> :
+                            <Button variant="contained" color="default" className={classes.button}
+                                onClick={this.handleLogIn}>
+                                Log In
+                                <PeopleIcon className={classes.rightIcon} />
+                            </Button>
+                        }
                         <IconButton onClick={this.handleDrawerClose}>
                             {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                         </IconButton>
@@ -150,7 +228,7 @@ class MainLayout extends React.Component {
                     <div className={classes.drawerHeader} />
                     <Files />
                 </main>
-            </div>
+            </div >
         );
     }
 }
