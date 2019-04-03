@@ -4,12 +4,10 @@ import { IGroups } from './models';
 export interface IGroupsData extends Document, IGroups {}
 
 const groupRepos = new Schema({
-  encryptedSessions: [
-    {
-      encryptedSession: String,
-      publicKey: String,
-    },
-  ],
+  encryptedSessions: {
+    type: Map,
+    encryptedSession: String,
+  },
   name: String,
   sessionKey: String,
 });

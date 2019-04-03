@@ -1,34 +1,21 @@
 import crypto from 'crypto';
-import AES from 'crypto-js/aes';
-import fs from 'fs';
-import NodeRSA from 'node-rsa';
 import { Groups } from './data';
-import { IGroups } from './models';
 
-let privateKey;
-export const startUp = async () => {
-  const privateKeyString = await fs.readFileSync('./src/id_rsa', 'utf8');
-  privateKey = new NodeRSA(privateKeyString);
-};
-
-export const createGroup = async (name: string, pubkey: string, callback: any, error: any) => {
-  const userPubKey = new NodeRSA(pubkey);
-
+export const getEncryptedSession = async (name: string, pubKey: string, callback: any, error: any) => {
   try {
-    const ret = await Groups.findOne({ name, encryptedSessions: { $in: { encryptedSession: pubkey } } });
+    const ret = await Groups.findOne({ name });
 
     if (!ret) {
-      const group = new Groups();
+      const group = new Groups({ encryptedSessions: {} });
       group.name = name;
       const sessionKeyBuffer = await crypto.randomBytes(32);
-      const encryptedSession = userPubKey.encrypt(sessionKeyBuffer.toString());
-      group.encryptedSessions[0].encryptedSession = encryptedSession;
-      group.encryptedSessions[0].publicKey = pubkey;
+      const encryptedSession = crypto.publicEncrypt(decodeURIComponent(pubKey), sessionKeyBuffer);
+      group.encryptedSessions.set(pubKey, encryptedSession.toString());
       group.sessionKey = sessionKeyBuffer.toString();
       await group.save();
-      callback(encryptedSession);
+      callback(encryptedSession.toString());
     } else {
-      callback(ret.encryptedSessions);
+      callback(ret.encryptedSessions.get(pubKey));
     }
   } catch (e) {
     console.log(e);

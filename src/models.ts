@@ -1,10 +1,5 @@
 export interface IGroups {
-  encryptedSessions: ISessions;
+  encryptedSessions: Map<string, string>;
   name: string;
   sessionKey: string;
-}
-
-interface ISessions {
-  encryptedSession: string;
-  publicKey: string;
 }

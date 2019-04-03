@@ -3,14 +3,12 @@ import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import logger from 'morgan';
-import { createGroup, startUp } from './requests';
+import { createGroup } from './requests';
 
 const API_PORT = 3001;
 const app = express();
 const router = express.Router();
 const dbRoute = 'mongodb://localhost:27017/secure-cloud';
-
-startUp();
 
 app.use(cors());
 
