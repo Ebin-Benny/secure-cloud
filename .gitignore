@@ -83,3 +83,6 @@ dist/
 
 #token
 token.txt
+
+#private key
+id_rsa

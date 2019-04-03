@@ -3,12 +3,14 @@ import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import logger from 'morgan';
-import { getRepoContributions, getUserRepos } from './database';
+import { createGroup, startUp } from './requests';
 
 const API_PORT = 3001;
 const app = express();
 const router = express.Router();
-const dbRoute = 'mongodb://localhost:27017/github-measurement';
+const dbRoute = 'mongodb://localhost:27017/secure-cloud';
+
+startUp();
 
 app.use(cors());
 
@@ -25,94 +27,18 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(logger('dev'));
 
-router.get('/addGroup', cors(), (req, res) => {
-  const userName = req.query.username;
-  if (!userName) {
+router.get('/createGroup', cors(), (req, res) => {
+  const name = req.query.name;
+  const pubKey = req.query.pubKey;
+  if (!name) {
     return res.json({
       error: 'INVALID INPUTS\n',
       success: false,
     });
   }
-  getUserRepos(
-    userName,
-    data => {
-      return res.json({
-        data,
-        success: true,
-      });
-    },
-    () => {
-      return res.json({
-        success: false,
-      });
-    },
-  );
-});
-
-router.get('/addUser', cors(), (req, res) => {
-  const userName = req.query.username;
-  if (!userName) {
-    return res.json({
-      error: 'INVALID INPUTS\n',
-      success: false,
-    });
-  }
-  getUserRepos(
-    userName,
-    data => {
-      return res.json({
-        data,
-        success: true,
-      });
-    },
-    () => {
-      return res.json({
-        success: false,
-      });
-    },
-  );
-});
-
-router.get('/getKey', cors(), (req, res) => {
-  const userName = req.query.username;
-  if (!userName) {
-    return res.json({
-      error: 'INVALID INPUTS\n',
-      success: false,
-    });
-  }
-  getUserRepos(
-    userName,
-    data => {
-      return res.json({
-        data,
-        success: true,
-      });
-    },
-    () => {
-      return res.json({
-        success: false,
-      });
-    },
-  );
-});
-
-router.get('/removeUser', cors(), (req, res) => {
-  const fullRepo = req.query.repo;
-  const split = fullRepo.split('/');
-  const owner = split[0];
-  const repo = split[1];
-
-  if (!fullRepo || !owner || !repo) {
-    return res.json({
-      error: 'INVALID INPUTS\n',
-      success: false,
-    });
-  }
-
-  getRepoContributions(
-    owner,
-    repo,
+  createGroup(
+    name,
+    pubKey,
     data => {
       return res.json({
         data,

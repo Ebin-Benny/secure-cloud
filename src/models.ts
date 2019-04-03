@@ -1,10 +1,10 @@
 export interface IGroups {
-  name: string;
   encryptedSessions: ISessions;
+  name: string;
   sessionKey: string;
 }
 
 interface ISessions {
-  publicKey: string;
   encryptedSession: string;
+  publicKey: string;
 }
