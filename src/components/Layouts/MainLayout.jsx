@@ -18,7 +18,7 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import GroupRoundedIcon from '@material-ui/icons/GroupRounded';
 import PeopleIcon from '@material-ui/icons/People';
-import Files from '../Files.js';
+import Group from '../../screens/Group';
 import Cookies from 'universal-cookie';
 import Button from '@material-ui/core/Button';
 const queryString = require('query-string');
@@ -163,7 +163,7 @@ class MainLayout extends React.PureComponent {
 
     render() {
         const { classes, theme } = this.props;
-        const { open, access_token, account_id, uid, name } = this.state;
+        const { open, name } = this.state;
 
         return (
             <div className={classes.root}>
@@ -226,7 +226,7 @@ class MainLayout extends React.PureComponent {
                     })}
                 >
                     <div className={classes.drawerHeader} />
-                    <Files />
+                    <Group groupName="Group1" />
                 </main>
             </div >
         );
