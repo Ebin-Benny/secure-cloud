@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import logger from 'morgan';
-import { createGroup } from './requests';
+import { addUser, getEncryptedSession } from './requests';
 
 const API_PORT = 3001;
 const app = express();
@@ -25,7 +25,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(logger('dev'));
 
-router.get('/createGroup', cors(), (req, res) => {
+router.get('/getEncryptedSession', cors(), (req, res) => {
   const name = req.query.name;
   const pubKey = req.query.pubKey;
   if (!name) {
@@ -34,12 +34,39 @@ router.get('/createGroup', cors(), (req, res) => {
       success: false,
     });
   }
-  createGroup(
+  getEncryptedSession(
     name,
     pubKey,
     data => {
       return res.json({
         data,
+        success: true,
+      });
+    },
+    () => {
+      return res.json({
+        success: false,
+      });
+    },
+  );
+});
+
+router.get('/addUser', cors(), (req, res) => {
+  const name = req.query.name;
+  const adderKey = req.query.adderKey;
+  const addedKey = req.query.addedKey;
+  if (!name) {
+    return res.json({
+      error: 'INVALID INPUTS\n',
+      success: false,
+    });
+  }
+  addUser(
+    name,
+    adderKey,
+    addedKey,
+    () => {
+      return res.json({
         success: true,
       });
     },

@@ -3,3 +3,8 @@ export interface IGroups {
   name: string;
   sessionKey: string;
 }
+
+export interface IUsers {
+  publicKey: string;
+  groups: [string];
+}
