@@ -6,6 +6,7 @@ const Dropbox = require('dropbox').Dropbox;
 const dbx = new Dropbox({ accessToken: 'ywzAGqMCbBAAAAAAAAAAT2bHwmOTsYLJv0LcFUVYkUn6gOOwbPlWP3FIMZdhoFtr', fetch });
 export const getEncryptedSession = async (name: string, publicKey: string, callback: any, error: any) => {
   try {
+    const decodedKey = decodeURIComponent(publicKey);
     const gret = await Groups.findOne({ name });
     const uret = await Users.findOne({ publicKey });
 
@@ -13,7 +14,7 @@ export const getEncryptedSession = async (name: string, publicKey: string, callb
       const group = new Groups({ encryptedSessions: {} });
       group.name = name;
       const sessionKey = await crypto.randomBytes(32);
-      const encryptedSession = crypto.publicEncrypt(decodeURIComponent(publicKey), sessionKey);
+      const encryptedSession = crypto.publicEncrypt(decodedKey, sessionKey);
       group.encryptedSessions.set(publicKey, encryptedSession.toString('hex'));
       group.sessionKey = sessionKey.toString('hex');
       await group.save();
@@ -70,7 +71,7 @@ export const addUser = async (name: string, adderKey: string, addedKey: string, 
 export const leaveGroup = async (name: string, publicKey: string, signature: string, callback: any, error: any) => {
   try {
     const verify = crypto.createVerify('RSA-SHA256');
-    if (!verify.verify(publicKey, signature)) {
+    if (!verify.verify(decodeURIComponent(publicKey), signature)) {
       error();
       return;
     }

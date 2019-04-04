@@ -115,8 +115,9 @@ router.get('/getGroups', cors(), (req, res) => {
   }
   getGroups(
     publicKey,
-    () => {
+    data => {
       return res.json({
+        data,
         success: true,
       });
     },
