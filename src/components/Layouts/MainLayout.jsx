@@ -18,15 +18,18 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import GroupRoundedIcon from '@material-ui/icons/GroupRounded';
 import PeopleIcon from '@material-ui/icons/People';
-import Group from '../../screens/Group';
+import Group from '../../screens/Group.jsx';
 import Cookies from 'universal-cookie';
 import Button from '@material-ui/core/Button';
+import crypto from 'crypto'
+
 const queryString = require('query-string');
 var Dropbox = require('dropbox').Dropbox;
 
 const CLIENT_ID = 'd8fbp50ftq67ldb';
 var dbx = new Dropbox({ clientId: CLIENT_ID });
 var authUrl = dbx.getAuthenticationUrl('http://localhost:3000/');
+
 const cookies = new Cookies();
 
 const drawerWidth = 240;
@@ -107,7 +110,10 @@ class MainLayout extends React.PureComponent {
         const parsed = queryString.parse(window.location.hash);
         let access_token = parsed.access_token;
         let uid = parsed.uid;
-        let account_id = parsed.account_id
+        let account_id = parsed.account_id;
+        let privateKey = cookies.get('privateKey');
+        let publicKey = cookies.get('publicKey');
+
         if (access_token === undefined) {
             access_token = cookies.get('access_token');
         } else {
@@ -124,12 +130,35 @@ class MainLayout extends React.PureComponent {
             cookies.set('account_id', account_id, { path: "/" });
         }
 
+        console.log(crypto);
+
+        if (privateKey === undefined) {
+            crypto.generateKeyPair('rsa', {
+                modulusLength: 4096,
+                publicKeyEncoding: {
+                    type: 'spki',
+                    format: 'pem'
+                },
+                privateKeyEncoding: {
+                    type: 'pkcs8',
+                    format: 'pem',
+                    cipher: 'aes-256-cbc',
+                    passphrase: 'top secret'
+                }
+            }, (err, publicKey, privateKey) => {
+                console.log(publicKey);
+                console.log(privateKey);
+            });
+        }
+
         this.state = {
             open: false,
             access_token,
             uid,
             account_id,
-            name: undefined
+            name: undefined,
+            privateKey,
+            publicKey,
         }
     }
 
@@ -226,7 +255,7 @@ class MainLayout extends React.PureComponent {
                     })}
                 >
                     <div className={classes.drawerHeader} />
-                    <Group groupName="Group1" />
+                    <Group groupName="Group1" publicKey="-----BEGIN%20PUBLIC%20KEY-----%0AMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2zvTlvvsLsSip5vFmXm%2B%0Ao56WAZnS8M8az%2BLAkA3YkYVWL5a68zoJk4Yk5tM6U8GvbiHUF8r9OsZ2Rl8u41C3%0A%2Fg9NOReETM9%2Fwy9NaQXy9i%2BDg1VR3Rkn7a0Ag5bQC77S7oVjMBOWrgHGSNOXT4jQ%0AhlMejdpWRDezhp5OjB7nkmWk8mFvgkoR56AOwPxJgEsebo9kf3Lqs9lejed90Ytz%0AMM6sdiyiq%2BVgRAhJCxyUBfMxrfP97pwAIlJ3f00MEd3o5w%2FcT6CfdllMA2bPnROo%0AEZoyDtVa9IZ%2FjoAP7rTQXvksSJIsSLKxVi7HGwTUvnID1EEi3NbYLem2JgSS5AGa%0Akf0JI6x%2Bm6D0VU3%2FZ1X4Jo0B5RZ5XofPyf6kZrSHeP37%2FqpeXDJfPkEny72UwBpu%0AQar7Nzp0jXtQ24lshe5psg9ozI9Caq80l1G07YQ61UGGeGXAKlQs%2F265hZ9PwPhe%0AP%2BL1LxpYgkoSexbd17bb%2ByOlwFmVq761qfl5moygC%2F3Ckn5nkm44RXZoJRkS4upE%0A4x8nzneHD9g9fLivYC1T2SilBwOsWpAkeL4brudYP5IqSaUDCMCctOj0H6VBporV%0Aac0LF1eLAYbGLMu3poG6NXKcRxnpst2U3ghFqT3Nu999%2BFvLFaMjgX95Sf67Vths%0A3sBGnLmudBaqohEw15xAl3cCAwEAAQ%3D%3D%0A-----END%20PUBLIC%20KEY-----%0A" />
                 </main>
             </div >
         );
