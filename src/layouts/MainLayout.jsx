@@ -17,19 +17,10 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import GroupRoundedIcon from '@material-ui/icons/GroupRounded';
-import PeopleIcon from '@material-ui/icons/People';
 import Group from '../../screens/Group.jsx';
 import Cookies from 'universal-cookie';
-import Button from '@material-ui/core/Button';
-import crypto from 'crypto'
-
-const queryString = require('query-string');
-var Dropbox = require('dropbox').Dropbox;
-
-const CLIENT_ID = 'd8fbp50ftq67ldb';
-var dbx = new Dropbox({ clientId: CLIENT_ID });
-var authUrl = dbx.getAuthenticationUrl('http://localhost:3000/');
-
+import axios from 'axios';
+const NodeRSA = require('node-rsa');
 const cookies = new Cookies();
 
 const drawerWidth = 240;
@@ -104,74 +95,52 @@ const styles = theme => ({
 });
 
 class MainLayout extends React.PureComponent {
+    _isMounted = false;
 
     constructor(props) {
         super(props);
-        const parsed = queryString.parse(window.location.hash);
-        let access_token = parsed.access_token;
-        let uid = parsed.uid;
-        let account_id = parsed.account_id;
-        let privateKey = cookies.get('privateKey');
-        let publicKey = cookies.get('publicKey');
-
-        if (access_token === undefined) {
-            access_token = cookies.get('access_token');
-        } else {
-            cookies.set('access_token', access_token, { path: "/" });
-        }
-        if (uid === undefined) {
-            uid = cookies.get('uid');
-        } else {
-            cookies.set('uid', uid, { path: "/" });
-        }
-        if (account_id === undefined) {
-            account_id = cookies.get('account_id');
-        } else {
-            cookies.set('account_id', account_id, { path: "/" });
-        }
-
-        console.log(crypto);
-
-        if (privateKey === undefined) {
-            crypto.generateKeyPair('rsa', {
-                modulusLength: 4096,
-                publicKeyEncoding: {
-                    type: 'spki',
-                    format: 'pem'
-                },
-                privateKeyEncoding: {
-                    type: 'pkcs8',
-                    format: 'pem',
-                    cipher: 'aes-256-cbc',
-                    passphrase: 'top secret'
-                }
-            }, (err, publicKey, privateKey) => {
-                console.log(publicKey);
-                console.log(privateKey);
-            });
-        }
 
         this.state = {
             open: false,
-            access_token,
-            uid,
-            account_id,
             name: undefined,
-            privateKey,
-            publicKey,
+            privateKey: '',
+            publicKey: '',
+            groups: [],
+            group: ''
         }
     }
 
     componentDidMount() {
-        const { access_token } = this.state;
-        if (access_token !== undefined) {
-            var dbu = new Dropbox({ accessToken: access_token });
-            var comp = this;
-            dbu.usersGetCurrentAccount()
-                .then((response) => {
-                    comp.handleGetName(response.name.display_name)
-                });
+        this._isMounted = true;
+        let privateKey = cookies.get('privateKey');
+        let publicKey = cookies.get('publicKey');
+
+        if(privateKey === ''){
+            const key = new NodeRSA({b: 2048});
+            key.generateKeyPair();
+            privateKey = key.exportKey('pkcs8-private-pem');
+            publicKey = key.exportKey('pkcs8-public-pem');
+            cookies.set('privateKey', privateKey, { path: "/" });
+            cookies.set('publicKey', publicKey, { path: "/" });
         }
+        axios({
+            method: 'get',
+            url: 'http://127.0.0.1:3001/api/getGroups',
+            params: {
+                publicKey: encodeURIComponent(publicKey),
+            }
+        }).then((result) => {
+            if(this._isMounted){
+                this.setState({ groups: result.data.data });
+            }
+        }).catch((e) => {
+            console.log(e);
+        });
+        this.setState({privateKey,publicKey});  
+    }    
+
+    componentWillUnmount(){
+        this._isMounted = false;
     }
 
     handleGetName = (name) => {
@@ -186,14 +155,14 @@ class MainLayout extends React.PureComponent {
         this.setState({ open: false });
     };
 
-    handleLogIn = () => {
-        window.open(authUrl, '_blank')
+    handleGroupClick = (name) => {
+        this.setState({ group: name });
     }
 
     render() {
         const { classes, theme } = this.props;
-        const { open, name } = this.state;
-
+        const { open, privateKey, publicKey, groups, group} = this.state;
+        const keyLoaded = privateKey !== '';
         return (
             <div className={classes.root}>
                 <CssBaseline />
@@ -213,7 +182,7 @@ class MainLayout extends React.PureComponent {
                             <MenuIcon />
                         </IconButton>
                         <Typography variant="h6" color="inherit" noWrap>
-                            Group 1
+                            {group}
                         </Typography>
                     </Toolbar>
                 </AppBar>
@@ -224,25 +193,16 @@ class MainLayout extends React.PureComponent {
                     open={open}
                     classes={{
                         paper: classes.drawerPaper,
-                    }}
-                >
+                    }}>
                     <div className={classes.drawerHeader}>
-                        {name !== undefined ?
-                            <Typography variant="h6" color="inherit" noWrap>{name}</Typography> :
-                            <Button variant="contained" color="default" className={classes.button}
-                                onClick={this.handleLogIn}>
-                                Log In
-                                <PeopleIcon className={classes.rightIcon} />
-                            </Button>
-                        }
                         <IconButton onClick={this.handleDrawerClose}>
                             {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
                         </IconButton>
                     </div>
                     <Divider />
                     <List>
-                        {['Group 1', 'Group 2', 'Group3'].map((text, index) => (
-                            <ListItem button key={text}>
+                        {groups.map((text, index) => (
+                            <ListItem button key={text} onClick={this.handleGroupClick(text)}>
                                 <ListItemIcon><GroupRoundedIcon /></ListItemIcon>
                                 <ListItemText primary={text} />
                             </ListItem>
@@ -252,10 +212,9 @@ class MainLayout extends React.PureComponent {
                 <main
                     className={classNames(classes.content, {
                         [classes.contentShift]: open,
-                    })}
-                >
+                    })}>
                     <div className={classes.drawerHeader} />
-                    <Group groupName="Group1" publicKey="-----BEGIN%20PUBLIC%20KEY-----%0AMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA2zvTlvvsLsSip5vFmXm%2B%0Ao56WAZnS8M8az%2BLAkA3YkYVWL5a68zoJk4Yk5tM6U8GvbiHUF8r9OsZ2Rl8u41C3%0A%2Fg9NOReETM9%2Fwy9NaQXy9i%2BDg1VR3Rkn7a0Ag5bQC77S7oVjMBOWrgHGSNOXT4jQ%0AhlMejdpWRDezhp5OjB7nkmWk8mFvgkoR56AOwPxJgEsebo9kf3Lqs9lejed90Ytz%0AMM6sdiyiq%2BVgRAhJCxyUBfMxrfP97pwAIlJ3f00MEd3o5w%2FcT6CfdllMA2bPnROo%0AEZoyDtVa9IZ%2FjoAP7rTQXvksSJIsSLKxVi7HGwTUvnID1EEi3NbYLem2JgSS5AGa%0Akf0JI6x%2Bm6D0VU3%2FZ1X4Jo0B5RZ5XofPyf6kZrSHeP37%2FqpeXDJfPkEny72UwBpu%0AQar7Nzp0jXtQ24lshe5psg9ozI9Caq80l1G07YQ61UGGeGXAKlQs%2F265hZ9PwPhe%0AP%2BL1LxpYgkoSexbd17bb%2ByOlwFmVq761qfl5moygC%2F3Ckn5nkm44RXZoJRkS4upE%0A4x8nzneHD9g9fLivYC1T2SilBwOsWpAkeL4brudYP5IqSaUDCMCctOj0H6VBporV%0Aac0LF1eLAYbGLMu3poG6NXKcRxnpst2U3ghFqT3Nu999%2BFvLFaMjgX95Sf67Vths%0A3sBGnLmudBaqohEw15xAl3cCAwEAAQ%3D%3D%0A-----END%20PUBLIC%20KEY-----%0A" />
+                    {keyLoaded ? <Group groupName={group} publicKey={publicKey} privateKey={privateKey}/>:''}
                 </main>
             </div >
         );

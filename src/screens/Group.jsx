@@ -3,15 +3,10 @@ import { FilePond } from 'react-filepond';
 import 'filepond/dist/filepond.min.css';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import Card from '@material-ui/core/Card';
-import CardActions from '@material-ui/core/CardActions';
-import CardContent from '@material-ui/core/CardContent';
-import Typography from '@material-ui/core/Typography';
-import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 import axios from 'axios';
 import crypto from 'crypto'
-var RSA = require('hybrid-crypto-js').RSA;
+import File from '../components/File'
 
 axios.defaults.port = 3001;
 var fetch = require('isomorphic-fetch');
@@ -31,41 +26,71 @@ const styles = {
 };
 
 class Group extends Component {
+    _isMounted = false;
 
     constructor(props) {
         super(props);
         this.state = {
-            session: ''
+            session: '',
+            mounted: false,
         }
     }
 
     componentDidMount() {
-        axios({
-            method: 'get',
-            url: 'http://127.0.0.1:3001/api/getEncryptedSession',
-            params: {
-                pubKey: decodeURIComponent(this.props.publicKey),
-                name: this.props.groupName,
-            }
-        }).then((result) => {
-            this.setState({ session: result.data.session });
-        }).catch((e) => {
-            console.log(e);
-        });
+        this._isMounted = true;
+        if (this.props.groupName !== ''){
+            axios({
+                method: 'get',
+                url: 'http://127.0.0.1:3001/api/getEncryptedSession',
+                params: {
+                    pubKey: encodeURIComponent(this.props.publicKey),
+                    name: this.props.groupName,
+                }
+            }).then((result) => {
+                if(this._isMounted){
+                    console.log(result);
+                    this.setState({ session: result.data.data });
+                }
+            }).catch((e) => {
+                console.log(e);
+            });
+        }
+    }
+
+    componentWillReceiveProps(){
+        if (this.props.groupName !== ''){
+            axios({
+                method: 'get',
+                url: 'http://127.0.0.1:3001/api/getEncryptedSession',
+                params: {
+                    pubKey: encodeURIComponent(this.props.publicKey),
+                    name: this.props.groupName,
+                }
+            }).then((result) => {
+                if(this._isMounted){
+                    console.log(result);
+                    this.setState({ session: result.data.data });
+                }
+            }).catch((e) => {
+                console.log(e);
+            });
+        }
+    }
+
+    componentWillUnmount(){
+        this._isMounted = false;
     }
 
     uploadFile(files) {
-        const { groupName } = this.props;
+        const { groupName, privateKey} = this.props;
         const { session } = this.state;
         if (files.length > 0 && session !== '') {
             let fileName = files[0].file.name;
             let reader = new FileReader();
             reader.onload = function () {
+                const decrypted = crypto.privateDecrypt(privateKey,Buffer.from(session,'hex'));
                 const iv = Buffer.alloc(16, 0);
-                console.log(session);
-                console.log(Buffer.from(session, 'hex').length);
-                console.log(Buffer.from(session, 'hex'));
-                const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(session, 'hex'), iv);
+                const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(decrypted, 'hex'), iv);
                 const encrypted = cipher.update(reader.result);
                 const encryptedFinal = cipher.final();
                 const encryptedBuffer = Buffer.concat([encrypted, encryptedFinal], encrypted.length + encryptedFinal.length);
@@ -89,18 +114,7 @@ class Group extends Component {
         return (
             <div>
                 <Grid container spacing={24}>
-                    <Grid item xs={3}>
-                        <Card className={classes.card}>
-                            <CardContent>
-                                <Typography variant="h5" component="h2">
-                                    Filename
-                                </Typography>
-                            </CardContent>
-                            <CardActions>
-                                <Button size="small">Download</Button>
-                            </CardActions>
-                        </Card>
-                    </Grid>
+                    <File name='something.pdf'/>
                 </Grid>
                 {sessionLoaded ? <FilePond
                     styles={{ width: 50 }}
