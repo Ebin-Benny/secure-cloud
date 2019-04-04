@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import { Groups, Users } from './data';
 
+const fetch = require('isomorphic-fetch');
+const Dropbox = require('dropbox').Dropbox;
+const dbx = new Dropbox({ accessToken: 'ywzAGqMCbBAAAAAAAAAAT2bHwmOTsYLJv0LcFUVYkUn6gOOwbPlWP3FIMZdhoFtr', fetch });
 export const getEncryptedSession = async (name: string, pubKey: string, callback: any, error: any) => {
   try {
     const gret = await Groups.findOne({ name });
@@ -9,10 +12,10 @@ export const getEncryptedSession = async (name: string, pubKey: string, callback
     if (!gret) {
       const group = new Groups({ encryptedSessions: {} });
       group.name = name;
-      const sessionKeyBuffer = await crypto.randomBytes(32);
-      const encryptedSession = crypto.publicEncrypt(decodeURIComponent(pubKey), sessionKeyBuffer);
-      group.encryptedSessions.set(pubKey, encryptedSession.toString());
-      group.sessionKey = sessionKeyBuffer.toString();
+      const sessionKey = await crypto.randomBytes(32);
+      const encryptedSession = crypto.publicEncrypt(decodeURIComponent(pubKey), sessionKey);
+      group.encryptedSessions.set(pubKey, encryptedSession.toString('hex'));
+      group.sessionKey = sessionKey.toString('hex');
       await group.save();
       if (!uret) {
         const user = new Users();
@@ -23,7 +26,7 @@ export const getEncryptedSession = async (name: string, pubKey: string, callback
         uret.groups.push(name);
         await uret.save();
       }
-      callback(encryptedSession.toString());
+      callback(encryptedSession.toString('hex'));
     } else {
       callback(gret.encryptedSessions.get(pubKey));
     }
@@ -45,7 +48,7 @@ export const addUser = async (name: string, adderKey: string, addedKey: string, 
     }
 
     const encryptedSession = crypto.publicEncrypt(decodeURIComponent(addedKey), Buffer.from(gret.sessionKey));
-    gret.encryptedSessions.set(addedKey, encryptedSession.toString());
+    gret.encryptedSessions.set(addedKey, encryptedSession.toString('hex'));
     await gret.save();
 
     const uret = await Users.findOne({ publicKey: addedKey });
@@ -66,7 +69,54 @@ export const addUser = async (name: string, adderKey: string, addedKey: string, 
 
 export const leaveGroup = async (name: string, pubKey: string, signature: string, callback: any, error: any) => {
   try {
+    const verify = crypto.createVerify('RSA-SHA256');
+    if (!verify.verify(pubKey, signature)) {
+      error();
+      return;
+    }
+
+    const gret = await Groups.findOne({ name });
+    if (!gret) {
+      error();
+      return;
+    }
+    gret.encryptedSessions.delete(pubKey);
+    const sessionKey = await crypto.randomBytes(32);
+    gret.encryptedSessions.forEach((v, k, m) => {
+      const encryptedSession = crypto.publicEncrypt(k, sessionKey);
+      gret.encryptedSessions.set(k, encryptedSession.toString('hex'));
+    });
+
+    const files = await dbx.filesListFolder({ path: '/' + name + '/' });
+    for (const f of files.entries) {
+      const file = await dbx.filesDownload({ path: '/' + name + '/' + f.name });
+      let iv = Buffer.alloc(16, 0);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(gret.sessionKey, 'hex'), iv);
+      decipher.setAutoPadding(false);
+      const decrypted = decipher.update(file.fileBinary);
+      const decryptedFinal = decipher.final();
+      const decryptedBuffer = Buffer.concat([decrypted, decryptedFinal], decrypted.length + decryptedFinal.length);
+      await dbx.filesDeleteV2({ path: '/' + name + '/' + f.name });
+      iv = Buffer.alloc(16, 0);
+      const cipher = crypto.createCipheriv('aes-256-cbc', sessionKey, iv);
+      const encrypted = cipher.update(decryptedBuffer);
+      const encryptedFinal = cipher.final();
+      const encryptedBuffer = Buffer.concat([encrypted, encryptedFinal], encrypted.length + encryptedFinal.length);
+      dbx.filesUpload({
+        contents: encryptedBuffer,
+        path: '/' + name + '/' + file.name,
+        mode: { '.tag': 'overwrite' },
+        autorename: true,
+        mute: true,
+        strict_conflict: false,
+      });
+    }
+
+    gret.sessionKey = sessionKey.toString('hex');
+    gret.save();
+    callback();
   } catch (e) {
+    console.log(e);
     error();
   }
 };

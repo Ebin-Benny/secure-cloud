@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import logger from 'morgan';
-import { addUser, getEncryptedSession } from './requests';
+import { addUser, getEncryptedSession, leaveGroup } from './requests';
 
 const API_PORT = 3001;
 const app = express();
@@ -65,6 +65,33 @@ router.get('/addUser', cors(), (req, res) => {
     name,
     adderKey,
     addedKey,
+    () => {
+      return res.json({
+        success: true,
+      });
+    },
+    () => {
+      return res.json({
+        success: false,
+      });
+    },
+  );
+});
+
+router.get('/leaveGroup', cors(), (req, res) => {
+  const name = req.query.name;
+  const pubKey = req.query.pubKey;
+  const signature = req.query.signature;
+  if (!name) {
+    return res.json({
+      error: 'INVALID INPUTS\n',
+      success: false,
+    });
+  }
+  leaveGroup(
+    name,
+    pubKey,
+    signature,
     () => {
       return res.json({
         success: true,
