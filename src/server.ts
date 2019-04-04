@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import logger from 'morgan';
-import { addUser, getEncryptedSession, leaveGroup } from './requests';
+import { addUser, getEncryptedSession, getGroups, leaveGroup } from './requests';
 
 const API_PORT = 3001;
 const app = express();
@@ -28,7 +28,7 @@ app.use(logger('dev'));
 router.get('/getEncryptedSession', cors(), (req, res) => {
   const name = req.query.name;
   const pubKey = req.query.pubKey;
-  if (!name) {
+  if (!name || !pubKey) {
     return res.json({
       error: 'INVALID INPUTS\n',
       success: false,
@@ -55,7 +55,7 @@ router.get('/addUser', cors(), (req, res) => {
   const name = req.query.name;
   const adderKey = req.query.adderKey;
   const addedKey = req.query.addedKey;
-  if (!name) {
+  if (!name || !adderKey || !addedKey) {
     return res.json({
       error: 'INVALID INPUTS\n',
       success: false,
@@ -82,7 +82,7 @@ router.get('/leaveGroup', cors(), (req, res) => {
   const name = req.query.name;
   const pubKey = req.query.pubKey;
   const signature = req.query.signature;
-  if (!name) {
+  if (!name || !pubKey || !signature) {
     return res.json({
       error: 'INVALID INPUTS\n',
       success: false,
@@ -92,6 +92,29 @@ router.get('/leaveGroup', cors(), (req, res) => {
     name,
     pubKey,
     signature,
+    () => {
+      return res.json({
+        success: true,
+      });
+    },
+    () => {
+      return res.json({
+        success: false,
+      });
+    },
+  );
+});
+
+router.get('/getGroups', cors(), (req, res) => {
+  const publicKey = req.query.publicKey;
+  if (!publicKey) {
+    return res.json({
+      error: 'INVALID INPUTS\n',
+      success: false,
+    });
+  }
+  getGroups(
+    publicKey,
     () => {
       return res.json({
         success: true,

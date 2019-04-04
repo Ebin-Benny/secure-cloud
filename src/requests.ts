@@ -4,22 +4,22 @@ import { Groups, Users } from './data';
 const fetch = require('isomorphic-fetch');
 const Dropbox = require('dropbox').Dropbox;
 const dbx = new Dropbox({ accessToken: 'ywzAGqMCbBAAAAAAAAAAT2bHwmOTsYLJv0LcFUVYkUn6gOOwbPlWP3FIMZdhoFtr', fetch });
-export const getEncryptedSession = async (name: string, pubKey: string, callback: any, error: any) => {
+export const getEncryptedSession = async (name: string, publicKey: string, callback: any, error: any) => {
   try {
     const gret = await Groups.findOne({ name });
-    const uret = await Users.findOne({ publicKey: pubKey });
+    const uret = await Users.findOne({ publicKey });
 
     if (!gret) {
       const group = new Groups({ encryptedSessions: {} });
       group.name = name;
       const sessionKey = await crypto.randomBytes(32);
-      const encryptedSession = crypto.publicEncrypt(decodeURIComponent(pubKey), sessionKey);
-      group.encryptedSessions.set(pubKey, encryptedSession.toString('hex'));
+      const encryptedSession = crypto.publicEncrypt(decodeURIComponent(publicKey), sessionKey);
+      group.encryptedSessions.set(publicKey, encryptedSession.toString('hex'));
       group.sessionKey = sessionKey.toString('hex');
       await group.save();
       if (!uret) {
         const user = new Users();
-        user.publicKey = pubKey;
+        user.publicKey = publicKey;
         user.groups = [name];
         await user.save();
       } else {
@@ -28,7 +28,7 @@ export const getEncryptedSession = async (name: string, pubKey: string, callback
       }
       callback(encryptedSession.toString('hex'));
     } else {
-      callback(gret.encryptedSessions.get(pubKey));
+      callback(gret.encryptedSessions.get(publicKey));
     }
   } catch (e) {
     error();
@@ -67,20 +67,19 @@ export const addUser = async (name: string, adderKey: string, addedKey: string, 
   }
 };
 
-export const leaveGroup = async (name: string, pubKey: string, signature: string, callback: any, error: any) => {
+export const leaveGroup = async (name: string, publicKey: string, signature: string, callback: any, error: any) => {
   try {
     const verify = crypto.createVerify('RSA-SHA256');
-    if (!verify.verify(pubKey, signature)) {
+    if (!verify.verify(publicKey, signature)) {
       error();
       return;
     }
-
     const gret = await Groups.findOne({ name });
     if (!gret) {
       error();
       return;
     }
-    gret.encryptedSessions.delete(pubKey);
+    gret.encryptedSessions.delete(publicKey);
     const sessionKey = await crypto.randomBytes(32);
     gret.encryptedSessions.forEach((v, k, m) => {
       const encryptedSession = crypto.publicEncrypt(k, sessionKey);
@@ -117,6 +116,19 @@ export const leaveGroup = async (name: string, pubKey: string, signature: string
     callback();
   } catch (e) {
     console.log(e);
+    error();
+  }
+};
+
+export const getGroups = async (publicKey: string, callback: any, error: any) => {
+  try {
+    const uret = await Users.findOne({ publicKey });
+    if (!uret) {
+      error();
+      return;
+    }
+    callback(uret.groups);
+  } catch (e) {
     error();
   }
 };
