@@ -70,7 +70,7 @@ export const addUser = async (name: string, adderKey: string, addedKey: string, 
 export const leaveGroup = async (name: string, publicKey: string, signature: string, callback: any, error: any) => {
   try {
     const verify = crypto.createVerify('RSA-SHA256');
-    if (!verify.verify(publicKey, signature)) {
+    if (!verify.verify(publicKey, signature, 'hex')) {
       error();
       return;
     }
