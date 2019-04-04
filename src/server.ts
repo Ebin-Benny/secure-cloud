@@ -39,7 +39,7 @@ router.get('/getEncryptedSession', cors(), (req, res) => {
     pubKey,
     data => {
       return res.json({
-        data,
+        session: data,
         success: true,
       });
     },
@@ -129,5 +129,6 @@ router.get('/getGroups', cors(), (req, res) => {
 });
 
 app.use('/api', router);
+app.disable('etag');
 
 app.listen(API_PORT, () => console.log(`LISTENING ON PORT ${API_PORT}`));
