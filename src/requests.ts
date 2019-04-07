@@ -69,8 +69,10 @@ export const addUser = async (name: string, adderKey: string, addedKey: string, 
 
 export const leaveGroup = async (name: string, publicKey: string, signature: string, callback: any, error: any) => {
   try {
-    const verify = crypto.createVerify('RSA-SHA256');
-    if (!verify.verify(decodeURIComponent(publicKey), signature)) {
+    const verify = crypto.createVerify('SHA256');
+    verify.update(Buffer.from('leaveGroup'));
+    verify.end();
+    if (!verify.verify(decodeURIComponent(publicKey), signature, 'hex')) {
       error();
       return;
     }
@@ -79,11 +81,20 @@ export const leaveGroup = async (name: string, publicKey: string, signature: str
       error();
       return;
     }
-    gret.encryptedSessions.delete(publicKey);
+
+    const uret = await Users.findOne({ publicKey });
+
+    if (uret) {
+      uret.groups = uret.groups.filter(v => v !== name);
+    }
+
+    gret.encryptedSessions.set(publicKey, 'removed');
     const sessionKey = await crypto.randomBytes(32);
     gret.encryptedSessions.forEach((v, k, m) => {
-      const encryptedSession = crypto.publicEncrypt(k, sessionKey);
-      gret.encryptedSessions.set(k, encryptedSession.toString('hex'));
+      if (v !== 'removed') {
+        const encryptedSession = crypto.publicEncrypt(decodeURIComponent(k), sessionKey);
+        gret.encryptedSessions.set(k, encryptedSession.toString('hex'));
+      }
     });
 
     const files = await dbx.filesListFolder({ path: '/' + name + '/' });
@@ -113,7 +124,8 @@ export const leaveGroup = async (name: string, publicKey: string, signature: str
     }
 
     gret.sessionKey = sessionKey.toString('hex');
-    gret.save();
+    await gret.save();
+    await uret.save();
     callback();
   } catch (e) {
     console.log(e);

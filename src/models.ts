@@ -6,5 +6,5 @@ export interface IGroups {
 
 export interface IUsers {
   publicKey: string;
-  groups: [string];
+  groups: string[];
 }
