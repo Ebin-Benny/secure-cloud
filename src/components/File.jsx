@@ -13,7 +13,8 @@ const styles = {
         flexGrow: 1,
     },
     card: {
-        margin: 20
+        width: 150,
+        margin: 10
     },
     pos: {
         marginBottom: 12,
@@ -22,14 +23,11 @@ const styles = {
 
 class File extends Component {
 
-
-
-
     render() {
         const { classes, name, handleDownload } = this.props;
 
         return (
-            <Grid item xs={3}>
+            <Grid item key={name}>
                 <Card className={classes.card}>
                     <CardContent>
                         <Typography variant="body1">

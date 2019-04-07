@@ -18,21 +18,28 @@ import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import GroupRoundedIcon from '@material-ui/icons/GroupRounded';
 import Group from '../screens/Group.jsx';
-import Cookies from 'universal-cookie';
 import axios from 'axios';
 import TextField from '@material-ui/core/TextField';
 import AddIcon from '@material-ui/icons/Add';
+import CloseIcon from '@material-ui/icons/Close';
 import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
 
 
 const NodeRSA = require('node-rsa');
-const cookies = new Cookies();
 
 const drawerWidth = 240;
 
 const styles = theme => ({
     root: {
         display: 'flex',
+    },
+    grow: {
+        flexGrow: 1,
     },
     appBar: {
         transition: theme.transitions.create(['margin', 'width'], {
@@ -105,7 +112,11 @@ const styles = theme => ({
         display: 'flex',
         flexWrap: 'wrap',
     },
-
+    pubKey: {
+        width: drawerWidth - 20,
+        'word-break': 'break-all',
+        margin: theme.spacing.unit,
+    },
 });
 
 class MainLayout extends React.PureComponent {
@@ -122,46 +133,55 @@ class MainLayout extends React.PureComponent {
             groups: [],
             group: '',
             nameInput: '',
+            dialogOpen: false,
+            newUser: '',
         }
 
 
     }
 
-    componentDidMount() {
+    componentDidMount = () => {
         this._isMounted = true;
-        let privateKey = cookies.get('privateKey');
-        let publicKey = cookies.get('publicKey');
+        let privateKey = localStorage.getItem('privateKey');
+        let publicKey = localStorage.getItem('publicKey');
 
-        if (privateKey === '' || privateKey === undefined) {
+        if (privateKey === '' || privateKey === undefined || privateKey === null) {
             const key = new NodeRSA({ b: 2048 });
             key.generateKeyPair();
             privateKey = key.exportKey('pkcs8-private-pem');
             publicKey = key.exportKey('pkcs8-public-pem');
-            cookies.set('privateKey', privateKey, { path: "/" });
-            cookies.set('publicKey', publicKey, { path: "/" });
+            localStorage.setItem('privateKey', privateKey);
+            localStorage.setItem('publicKey', publicKey);
         }
+
+        this.updateGroups(publicKey);
+
+        this.setState({ privateKey, publicKey });
+    }
+
+    updateGroups = (publicKey) => {
         axios({
             method: 'get',
-            url: 'http://127.0.0.1:3001/api/getGroups',
+            url: 'http://127.0.0.1:3002/api/getGroups',
             params: {
                 publicKey: encodeURIComponent(publicKey),
             }
         }).then((result) => {
             if (this._isMounted) {
-                if (result.data.data !== undefined)
-                    this.setState({ groups: result.data.data });
+                let groups = result.data.data;
+                if (groups === undefined) groups = [];
+                if (this.state.group === '') {
+                    this.setState({ group: groups[0], groups });
+                } else {
+                    this.setState({ groups });
+                }
             }
         }).catch((e) => {
             console.log(e);
         });
-        this.setState({ privateKey, publicKey });
     }
 
-    updateGroups = () => {
-
-    }
-
-    componentWillUnmount() {
+    componentWillUnmount = () => {
         this._isMounted = false;
     }
 
@@ -186,15 +206,60 @@ class MainLayout extends React.PureComponent {
     };
 
     handleCreateGroup = () => {
+        const name = this.state.nameInput;
         axios({
             method: 'get',
-            url: 'http://127.0.0.1:3001/api/getEncryptedSession',
+            url: 'http://127.0.0.1:3002/api/getEncryptedSession',
             params: {
                 pubKey: encodeURIComponent(this.state.publicKey),
-                name: this.state.nameInput,
+                name,
             }
-        }).then((result) => {
+        }).then(() => {
+            this.setState({ group: name });
+            this.updateGroups(this.state.publicKey);
+        }).catch((e) => {
+            console.log(e);
+        });
+    }
 
+    handleDialogOpen = () => {
+        this.setState({ dialogOpen: true });
+    };
+
+    handleDialogClose = () => {
+        this.setState({ dialogOpen: false });
+    };
+
+    handleAddUser = () => {
+        this.handleDialogClose();
+        axios({
+            method: 'get',
+            url: 'http://127.0.0.1:3002/api/addUser',
+            params: {
+                adderKey: encodeURIComponent(this.state.publicKey),
+                addedKey: (this.state.newUser),
+                name: this.state.group,
+            }
+        }).catch((e) => {
+            console.log(e);
+        });
+    }
+
+    handleLeaveGroup = () => {
+        const key = new NodeRSA();
+        key.importKey(this.state.privateKey, 'pkcs8-private-pem');
+        const signature = key.sign(Buffer.from('leaveGroup'), 'hex');
+        this.setState({ group: '' });
+        axios({
+            method: 'get',
+            url: 'http://127.0.0.1:3002/api/leaveGroup',
+            params: {
+                pubKey: encodeURIComponent(this.state.publicKey),
+                signature,
+                name: this.state.group,
+            }
+        }).then(() => {
+            this.updateGroups();
         }).catch((e) => {
             console.log(e);
         });
@@ -204,7 +269,7 @@ class MainLayout extends React.PureComponent {
         const { classes, theme } = this.props;
         const { open, privateKey, publicKey, groups, group } = this.state;
         const keyLoaded = privateKey !== '' && privateKey !== undefined;
-        const groupSelected = group !== '';
+        const groupSelected = (group !== '' && group !== undefined);
         const drawGroup = keyLoaded && groupSelected;
 
         return (
@@ -225,9 +290,19 @@ class MainLayout extends React.PureComponent {
                         >
                             <MenuIcon />
                         </IconButton>
-                        <Typography variant="h6" color="inherit" noWrap>
+                        <Typography className={classes.grow} variant="h6" color="inherit" noWrap>
                             {group}
                         </Typography>
+                        {drawGroup ?
+                            <>
+                                <IconButton aria-label="Add User" color="inherit" className={classes.button} onClick={this.handleDialogOpen}>
+                                    <AddIcon />
+                                </IconButton>
+                                <IconButton aria-label="Exit group" color="inherit" className={classes.button} onClick={this.handleLeaveGroup}>
+                                    <CloseIcon />
+                                </IconButton>
+                            </> : ''}
+
                     </Toolbar>
                 </AppBar>
                 <Drawer
@@ -244,9 +319,9 @@ class MainLayout extends React.PureComponent {
                         </IconButton>
                     </div>
                     <Divider />
-                    <Typography paragraph>
-                        {publicKey}
-                    </Typography>
+                    <div className={classes.pubKey}>
+                        {encodeURIComponent(publicKey)}
+                    </div>
                     <Divider />
                     <form className={classes.container} noValidate autoComplete="off">
                         <TextField
@@ -264,7 +339,7 @@ class MainLayout extends React.PureComponent {
                     </Button>
                     <Divider />
                     <List>
-                        {groups.map((text, index) => (
+                        {groups.map((text) => (
                             <ListItem button key={text} onClick={this.handleGroupClick(text)}>
                                 <ListItemIcon><GroupRoundedIcon /></ListItemIcon>
                                 <ListItemText primary={text} />
@@ -279,6 +354,33 @@ class MainLayout extends React.PureComponent {
                     <div className={classes.drawerHeader} />
                     {drawGroup ? <Group groupName={group} publicKey={publicKey} privateKey={privateKey} /> : ''}
                 </main>
+                <Dialog
+                    open={this.state.dialogOpen}
+                    onClose={this.handleDrawerClose}
+                    aria-labelledby="form-dialog-title">
+                    <DialogTitle id="form-dialog-title">Add User</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>
+                            Add a user to this group using their public key.
+                        </DialogContentText>
+                        <TextField
+                            id="standard-name"
+                            label="Public Key"
+                            className={classes.textField}
+                            value={this.state.groupName}
+                            onChange={this.handleChange('newUser')}
+                            fullWidth />
+
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={this.handleDialogClose} color="primary">
+                            Cancel
+                        </Button>
+                        <Button onClick={this.handleAddUser} color="primary">
+                            Add
+                        </Button>
+                    </DialogActions>
+                </Dialog>
             </div >
         );
     }

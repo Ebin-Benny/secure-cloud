@@ -28,10 +28,14 @@ const styles = {
     pos: {
         marginBottom: 12,
     },
+    filePond: {
+        margin: 10
+    }
 };
 
 class Group extends Component {
     _isMounted = false;
+    _previous = '';
 
     constructor(props) {
         super(props);
@@ -39,20 +43,24 @@ class Group extends Component {
             session: '',
             mounted: false,
             files: [],
-            uploading: false
+            uploading: false,
         }
     }
 
     componentDidMount() {
         this._isMounted = true;
+        this._previous = this.props.groupName;
         this.updateSession(this.props.groupName);
         this.updateFiles(this.props.groupName);
     }
 
     componentWillReceiveProps(nextProps) {
-        this.setState({ session: '', files: [] })
-        this.updateSession(nextProps.groupName);
-        this.updateFiles(nextProps.groupName);
+        if (nextProps.groupName !== this._previous) {
+            this.setState({ session: '', files: [] })
+            this.updateSession(nextProps.groupName);
+            this.updateFiles(nextProps.groupName);
+            this._previous = nextProps.groupName;
+        }
     }
 
     componentWillUnmount() {
@@ -63,7 +71,7 @@ class Group extends Component {
         if (groupName !== '') {
             axios({
                 method: 'get',
-                url: 'http://127.0.0.1:3001/api/getEncryptedSession',
+                url: 'http://127.0.0.1:3002/api/getEncryptedSession',
                 params: {
                     pubKey: encodeURIComponent(this.props.publicKey),
                     name: groupName,
@@ -146,7 +154,9 @@ class Group extends Component {
 
     render() {
         const { session, files } = this.state;
-        const sessionLoaded = session !== '';
+        const { groupName, classes } = this.props;
+        const loaded = session !== '' && groupName !== '' && groupName !== undefined;
+
 
         let filesView = [];
         for (let file of files) {
@@ -155,8 +165,8 @@ class Group extends Component {
 
         return (
             <div>
-                {sessionLoaded ? <FilePond
-                    styles={{ width: 50 }}
+                {loaded ? <FilePond
+                    className={classes.filePond}
                     anchorOrigin={{
                         vertical: 'bottom',
                         horizontal: 'left',
@@ -165,8 +175,8 @@ class Group extends Component {
                     onupdatefiles={(files) => {
                         this.uploadFile(files)
                     }} /> : ''}
-                <Grid container spacing={24}>
-                    {sessionLoaded ? filesView : ''}
+                <Grid container spacing={0}>
+                    {loaded ? filesView : ''}
                 </Grid>
             </div>
         );
