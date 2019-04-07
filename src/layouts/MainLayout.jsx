@@ -259,7 +259,7 @@ class MainLayout extends React.PureComponent {
                 name: this.state.group,
             }
         }).then(() => {
-            this.updateGroups();
+            this.updateGroups(this.state.publicKey);
         }).catch((e) => {
             console.log(e);
         });
