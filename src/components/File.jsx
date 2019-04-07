@@ -20,20 +20,24 @@ const styles = {
     },
 };
 
-class File extends Component{
-    
+class File extends Component {
+
+
+
+
     render() {
-        const { classes, name } = this.props;
-        return(
+        const { classes, name, handleDownload } = this.props;
+
+        return (
             <Grid item xs={3}>
                 <Card className={classes.card}>
-                        <CardContent>
-                            <Typography variant="h5" component="h2">
-                                {name}
-                            </Typography>
-                        </CardContent>
+                    <CardContent>
+                        <Typography variant="body1">
+                            {name}
+                        </Typography>
+                    </CardContent>
                     <CardActions>
-                        <Button size="small">Download</Button>
+                        <Button size="small" onClick={handleDownload}>Download</Button>
                     </CardActions>
                 </Card>
             </Grid>

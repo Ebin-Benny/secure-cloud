@@ -17,9 +17,14 @@ import ListItem from '@material-ui/core/ListItem';
 import ListItemIcon from '@material-ui/core/ListItemIcon';
 import ListItemText from '@material-ui/core/ListItemText';
 import GroupRoundedIcon from '@material-ui/icons/GroupRounded';
-import Group from '../../screens/Group.jsx';
+import Group from '../screens/Group.jsx';
 import Cookies from 'universal-cookie';
 import axios from 'axios';
+import TextField from '@material-ui/core/TextField';
+import AddIcon from '@material-ui/icons/Add';
+import Button from '@material-ui/core/Button';
+
+
 const NodeRSA = require('node-rsa');
 const cookies = new Cookies();
 
@@ -92,6 +97,15 @@ const styles = theme => ({
     iconSmall: {
         fontSize: 20,
     },
+    textField: {
+        marginLeft: theme.spacing.unit,
+        marginRight: theme.spacing.unit,
+    },
+    container: {
+        display: 'flex',
+        flexWrap: 'wrap',
+    },
+
 });
 
 class MainLayout extends React.PureComponent {
@@ -106,8 +120,11 @@ class MainLayout extends React.PureComponent {
             privateKey: '',
             publicKey: '',
             groups: [],
-            group: ''
+            group: '',
+            nameInput: '',
         }
+
+
     }
 
     componentDidMount() {
@@ -115,8 +132,8 @@ class MainLayout extends React.PureComponent {
         let privateKey = cookies.get('privateKey');
         let publicKey = cookies.get('publicKey');
 
-        if(privateKey === ''){
-            const key = new NodeRSA({b: 2048});
+        if (privateKey === '' || privateKey === undefined) {
+            const key = new NodeRSA({ b: 2048 });
             key.generateKeyPair();
             privateKey = key.exportKey('pkcs8-private-pem');
             publicKey = key.exportKey('pkcs8-public-pem');
@@ -130,16 +147,21 @@ class MainLayout extends React.PureComponent {
                 publicKey: encodeURIComponent(publicKey),
             }
         }).then((result) => {
-            if(this._isMounted){
-                this.setState({ groups: result.data.data });
+            if (this._isMounted) {
+                if (result.data.data !== undefined)
+                    this.setState({ groups: result.data.data });
             }
         }).catch((e) => {
             console.log(e);
         });
-        this.setState({privateKey,publicKey});  
-    }    
+        this.setState({ privateKey, publicKey });
+    }
 
-    componentWillUnmount(){
+    updateGroups = () => {
+
+    }
+
+    componentWillUnmount() {
         this._isMounted = false;
     }
 
@@ -155,14 +177,36 @@ class MainLayout extends React.PureComponent {
         this.setState({ open: false });
     };
 
-    handleGroupClick = (name) => {
+    handleGroupClick = (name) => () => {
         this.setState({ group: name });
+    }
+
+    handleChange = name => event => {
+        this.setState({ [name]: event.target.value });
+    };
+
+    handleCreateGroup = () => {
+        axios({
+            method: 'get',
+            url: 'http://127.0.0.1:3001/api/getEncryptedSession',
+            params: {
+                pubKey: encodeURIComponent(this.state.publicKey),
+                name: this.state.nameInput,
+            }
+        }).then((result) => {
+
+        }).catch((e) => {
+            console.log(e);
+        });
     }
 
     render() {
         const { classes, theme } = this.props;
-        const { open, privateKey, publicKey, groups, group} = this.state;
-        const keyLoaded = privateKey !== '';
+        const { open, privateKey, publicKey, groups, group } = this.state;
+        const keyLoaded = privateKey !== '' && privateKey !== undefined;
+        const groupSelected = group !== '';
+        const drawGroup = keyLoaded && groupSelected;
+
         return (
             <div className={classes.root}>
                 <CssBaseline />
@@ -200,6 +244,25 @@ class MainLayout extends React.PureComponent {
                         </IconButton>
                     </div>
                     <Divider />
+                    <Typography paragraph>
+                        {publicKey}
+                    </Typography>
+                    <Divider />
+                    <form className={classes.container} noValidate autoComplete="off">
+                        <TextField
+                            id="standard-name"
+                            label="Group"
+                            className={classes.textField}
+                            value={this.state.groupName}
+                            onChange={this.handleChange('nameInput')}
+                            margin="normal"
+                        />
+                    </form>
+                    <Button variant="contained" color="primary" className={classes.button} onClick={this.handleCreateGroup}>
+                        Create
+                        <AddIcon />
+                    </Button>
+                    <Divider />
                     <List>
                         {groups.map((text, index) => (
                             <ListItem button key={text} onClick={this.handleGroupClick(text)}>
@@ -214,7 +277,7 @@ class MainLayout extends React.PureComponent {
                         [classes.contentShift]: open,
                     })}>
                     <div className={classes.drawerHeader} />
-                    {keyLoaded ? <Group groupName={group} publicKey={publicKey} privateKey={privateKey}/>:''}
+                    {drawGroup ? <Group groupName={group} publicKey={publicKey} privateKey={privateKey} /> : ''}
                 </main>
             </div >
         );

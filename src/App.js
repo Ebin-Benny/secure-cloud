@@ -1,13 +1,13 @@
 import React, { Component } from 'react';
 import './App.css';
 import 'typeface-roboto';
-import MainLayout from './components/Layouts/MainLayout';
+import MainLayout from './layouts/MainLayout';
 
 class App extends Component {
   render() {
     return (
       <div className="App">
-        <MainLayout/>
+        <MainLayout />
       </div>
     );
   }
