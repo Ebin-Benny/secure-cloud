@@ -126,6 +126,7 @@ class Group extends Component {
     uploadFile = (files) => {
         const { groupName, privateKey } = this.props;
         const { session, uploading } = this.state;
+        const t = this;
         if (!uploading && files.length > 0 && session !== '') {
             this.setState({ uploading: true })
             let fileName = files[0].file.name;
@@ -146,7 +147,10 @@ class Group extends Component {
                     autorename: true,
                     mute: true,
                     strict_conflict: false
-                })
+                }).then(() => {
+                    t.setState({ uploading: false })
+                    t.updateFiles(groupName);
+                });
             };
             reader.readAsArrayBuffer(files[0].file)
         }
@@ -171,7 +175,7 @@ class Group extends Component {
                         vertical: 'bottom',
                         horizontal: 'left',
                     }}
-                    allowMultiple={true}
+                    allowMultiple={false}
                     onupdatefiles={(files) => {
                         this.uploadFile(files)
                     }} /> : ''}

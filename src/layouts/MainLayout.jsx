@@ -137,7 +137,6 @@ class MainLayout extends React.PureComponent {
             newUser: '',
         }
 
-
     }
 
     componentDidMount = () => {
