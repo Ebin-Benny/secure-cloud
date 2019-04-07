@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import logger from 'morgan';
 import { addUser, getEncryptedSession, getGroups, leaveGroup } from './requests';
 
-const API_PORT = 3001;
+const API_PORT = 3002;
 const app = express();
 const router = express.Router();
 const dbRoute = 'mongodb://localhost:27017/secure-cloud';
