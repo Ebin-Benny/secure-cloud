@@ -17,6 +17,8 @@ var Buffer = require('buffer/').Buffer
 var arrayBufferToBuffer = require('arraybuffer-to-buffer');
 var download = require("downloadjs")
 
+const server_address = 'http://127.0.0.1:3002/api/';
+
 
 const styles = {
     root: {
@@ -71,7 +73,7 @@ class Group extends Component {
         if (groupName !== '') {
             axios({
                 method: 'get',
-                url: 'http://127.0.0.1:3002/api/getEncryptedSession',
+                url: `${server_address}getEncryptedSession`,
                 params: {
                     pubKey: encodeURIComponent(this.props.publicKey),
                     name: groupName,

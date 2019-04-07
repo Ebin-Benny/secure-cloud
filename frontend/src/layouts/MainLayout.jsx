@@ -31,7 +31,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 
 
 const NodeRSA = require('node-rsa');
-
+const server_address = 'http://127.0.0.1:3002/api/';
 const drawerWidth = 240;
 
 const styles = theme => ({
@@ -161,7 +161,7 @@ class MainLayout extends React.PureComponent {
     updateGroups = (publicKey) => {
         axios({
             method: 'get',
-            url: 'http://127.0.0.1:3002/api/getGroups',
+            url: `${server_address}getGroups`,
             params: {
                 publicKey: encodeURIComponent(publicKey),
             }
@@ -208,7 +208,7 @@ class MainLayout extends React.PureComponent {
         const name = this.state.nameInput;
         axios({
             method: 'get',
-            url: 'http://127.0.0.1:3002/api/getEncryptedSession',
+            url: `${server_address}getEncryptedSession`,
             params: {
                 pubKey: encodeURIComponent(this.state.publicKey),
                 name,
@@ -233,7 +233,7 @@ class MainLayout extends React.PureComponent {
         this.handleDialogClose();
         axios({
             method: 'get',
-            url: 'http://127.0.0.1:3002/api/addUser',
+            url: `${server_address}addUser`,
             params: {
                 adderKey: encodeURIComponent(this.state.publicKey),
                 addedKey: (this.state.newUser),
@@ -251,7 +251,7 @@ class MainLayout extends React.PureComponent {
         this.setState({ group: '' });
         axios({
             method: 'get',
-            url: 'http://127.0.0.1:3002/api/leaveGroup',
+            url: `${server_address}leaveGroup`,
             params: {
                 pubKey: encodeURIComponent(this.state.publicKey),
                 signature,
