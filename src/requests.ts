@@ -123,13 +123,13 @@ export const leaveGroup = async (name: string, publicKey: string, signature: str
           strict_conflict: false,
         });
       }
-      gret.sessionKey = sessionKey.toString('hex');
-      await gret.save();
-      await uret.save();
     } catch (e) {
+      console.log(e);
+    } finally {
       gret.sessionKey = sessionKey.toString('hex');
       await gret.save();
       await uret.save();
+      callback();
     }
   } catch (e) {
     console.log(e);
