@@ -82,3 +82,32 @@ typings/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+#DynamoDB Local files 
+.dynamodb/ 
+
+#typescript dist
+dist/
+
+#token
+token.txt
+
+#private key
+id_rsa

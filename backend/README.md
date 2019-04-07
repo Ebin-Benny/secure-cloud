@@ -1,0 +1,25 @@
+# Backend
+
+This is the backend of the secure cloud.
+
+## Before running
+
+Install the latest version of mongodb and ensure it's running on localhost.
+
+```
+$ sudo service mongod start
+```
+
+Install the node modules with:
+
+```
+$ npm install
+```
+
+## Running
+
+Run the server using:
+
+```
+$ npm start
+```
