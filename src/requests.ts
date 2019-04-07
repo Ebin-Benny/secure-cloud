@@ -91,13 +91,14 @@ export const leaveGroup = async (name: string, publicKey: string, signature: str
       const file = await dbx.filesDownload({ path: '/' + name + '/' + f.name });
       let iv = Buffer.alloc(16, 0);
       const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(gret.sessionKey, 'hex'), iv);
-      decipher.setAutoPadding(false);
+      decipher.setAutoPadding(true);
       const decrypted = decipher.update(file.fileBinary);
       const decryptedFinal = decipher.final();
       const decryptedBuffer = Buffer.concat([decrypted, decryptedFinal], decrypted.length + decryptedFinal.length);
       await dbx.filesDeleteV2({ path: '/' + name + '/' + f.name });
       iv = Buffer.alloc(16, 0);
       const cipher = crypto.createCipheriv('aes-256-cbc', sessionKey, iv);
+      cipher.setAutoPadding(true);
       const encrypted = cipher.update(decryptedBuffer);
       const encryptedFinal = cipher.final();
       const encryptedBuffer = Buffer.concat([encrypted, encryptedFinal], encrypted.length + encryptedFinal.length);
